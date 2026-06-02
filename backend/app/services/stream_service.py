@@ -2,7 +2,7 @@ import asyncio
 import subprocess
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ async def start_stream(
             "status": "started",
             "session_id": session_id,
             "pid": process.pid,
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
         }
     except FileNotFoundError:
         logger.warning("FFmpeg not found — stream is mocked in local dev mode")

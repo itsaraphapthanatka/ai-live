@@ -43,6 +43,19 @@ export const campaignApi = {
   create: (data: any) => api.post("/campaigns", data).then((r) => r.data),
   update: (id: number, data: any) => api.put(`/campaigns/${id}`, data).then((r) => r.data),
   delete: (id: number) => api.delete(`/campaigns/${id}`).then((r) => r.data),
+  uploadAvatar: (id: number, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/campaigns/${id}/upload-avatar`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+  generateAvatar: (id: number, avatar_id: string, voice_id: string) =>
+    api.post(`/campaigns/${id}/generate-avatar`, { avatar_id, voice_id }).then((r) => r.data),
+  avatarStatus: (id: number) =>
+    api.get(`/campaigns/${id}/avatar-status`).then((r) => r.data),
+  heygenAvatars: () => api.get("/campaigns/heygen/avatars").then((r) => r.data),
+  heygenVoices: () => api.get("/campaigns/heygen/voices").then((r) => r.data),
 };
 
 // ===== AI =====

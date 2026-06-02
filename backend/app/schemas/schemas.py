@@ -13,6 +13,7 @@ class CampaignCreate(BaseModel):
     promotion: Optional[str] = None
     script: Optional[str] = None
     avatar_url: Optional[str] = None
+    tts_voice: Optional[str] = "nova"
     scheduled_at: Optional[datetime] = None
 
 
@@ -26,6 +27,7 @@ class CampaignUpdate(BaseModel):
     promotion: Optional[str] = None
     script: Optional[str] = None
     avatar_url: Optional[str] = None
+    tts_voice: Optional[str] = None
     status: Optional[str] = None
     scheduled_at: Optional[datetime] = None
 
@@ -42,6 +44,8 @@ class CampaignOut(BaseModel):
     promotion: Optional[str]
     script: Optional[str]
     avatar_url: Optional[str]
+    heygen_video_id: Optional[str]
+    tts_voice: Optional[str]
     status: str
     scheduled_at: Optional[datetime]
     created_at: datetime
@@ -49,6 +53,11 @@ class CampaignOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AvatarGenerateRequest(BaseModel):
+    avatar_id: str
+    voice_id: str = "en-US-AriaNeural"
 
 
 class ScriptGenerateRequest(BaseModel):

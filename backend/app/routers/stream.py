@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from app.database import get_db
 from app.models.user import User
 from app.models.stream import StreamAccount, StreamSession
@@ -10,6 +11,8 @@ from app.models.campaign import Campaign
 from app.schemas.schemas import StreamAccountCreate, StreamAccountOut, StreamSessionOut
 from app.auth import get_current_user
 from app.services import stream_service
+from app.services import tts_service
+from app.config import settings
 
 router = APIRouter(prefix="/stream", tags=["stream"])
 
@@ -95,7 +98,7 @@ async def start_stream(
         rtmp_url=rtmp_url,
         stream_key=stream_key,
         status="connecting",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(session)
 
@@ -104,12 +107,21 @@ async def start_stream(
     await db.commit()
     await db.refresh(session)
 
-    # Start FFmpeg (mock on local dev)
+    # Generate and save TTS audio from campaign script
+    audio_dir = Path(settings.MEDIA_DIR) / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = str(audio_dir / f"{campaign_id}.mp3")
+    if campaign.script:
+        voice = campaign.tts_voice or "nova"
+        audio_bytes = await tts_service.text_to_speech(campaign.script, voice)
+        Path(audio_path).write_bytes(audio_bytes)
+
+    # Start FFmpeg
     avatar_path = campaign.avatar_url or "avatar.mp4"
     stream_result = await stream_service.start_stream(
         session_id=session.id,
         avatar_path=avatar_path,
-        audio_path="voice.mp3",
+        audio_path=audio_path,
         rtmp_url=rtmp_url,
         stream_key=stream_key,
     )
@@ -135,7 +147,7 @@ async def stop_stream(
 
     await stream_service.stop_stream(session_id)
     session.status = "ended"
-    session.ended_at = datetime.utcnow()
+    session.ended_at = datetime.now(timezone.utc)
     await db.commit()
     return {"status": "stopped", "session_id": session_id}
 

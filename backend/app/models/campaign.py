@@ -17,6 +17,8 @@ class Campaign(Base):
     promotion = sa.Column(sa.Text)
     script = sa.Column(sa.Text)
     avatar_url = sa.Column(sa.String(500))
+    heygen_video_id = sa.Column(sa.String(255))
+    tts_voice = sa.Column(sa.String(50), default="nova")
     status = sa.Column(sa.String(50), default="draft")  # draft / scheduled / live / ended
     scheduled_at = sa.Column(sa.DateTime, nullable=True)
     created_at = sa.Column(sa.DateTime, server_default=sa.func.now())

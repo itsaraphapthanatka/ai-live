@@ -16,6 +16,7 @@ services:
       - redis
     volumes:
       - ./backend:/app
+      - media_data:/app/media
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
@@ -44,6 +45,9 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - media_data:/app/media
 
 volumes:
   postgres_data:
+  media_data:

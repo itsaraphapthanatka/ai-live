@@ -38,6 +38,16 @@ async def create_lead(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Verify campaign belongs to current user's company
+    result = await db.execute(
+        select(Campaign).where(
+            Campaign.id == data.campaign_id,
+            Campaign.company_id == current_user.company_id,
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Campaign not found or access denied")
+
     lead = Lead(**data.model_dump())
     db.add(lead)
     await db.commit()
@@ -51,7 +61,11 @@ async def delete_lead(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    result = await db.execute(
+        select(Lead)
+        .join(Campaign, Lead.campaign_id == Campaign.id)
+        .where(Lead.id == lead_id, Campaign.company_id == current_user.company_id)
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")

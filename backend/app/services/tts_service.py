@@ -40,12 +40,7 @@ async def text_to_speech(text: str, voice: str = "nova") -> bytes:
         response_format="mp3",
     )
 
-    # Return audio bytes
-    audio_bytes = b""
-    async for chunk in response.aiter_bytes():
-        audio_bytes += chunk
-
-    return audio_bytes
+    return await response.aread()
 
 
 async def text_to_speech_base64(text: str, voice: str = "nova") -> str:
