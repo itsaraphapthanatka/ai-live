@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     MEDIA_DIR: str = "/app/media"
     HEYGEN_API_KEY: str = ""
+    TIKTOOL_API_KEY: str = ""
 
     class Config:
         env_file = ".env"

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tik.Tools live video</title>
+<style>
+  body{margin:0;background:#000;color:#fff;font:14px system-ui}
+  video{width:100%;max-width:900px;display:block;margin:0 auto;background:#000}
+  .bar{display:flex;gap:8px;justify-content:center;padding:10px}
+  input,button{font:inherit;background:#14141a;color:#fff;border:1px solid #333;border-radius:6px;padding:6px 10px}
+  button{background:linear-gradient(135deg,#ff0085,#a935f1);border:none;cursor:pointer;font-weight:700}
+  #info{padding:6px;text-align:center;color:#cbd5e1}
+</style>
+<div class="bar">
+  <input id="u" placeholder="username (empty = random live)" />
+  <button id="go">Play</button>
+</div>
+<div id="info">Pick any TikTok LIVE creator or leave empty for a random one.</div>
+<video id="v" controls playsinline autoplay muted></video>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+const API = 'https://api.tik.tools';
+go.onclick = async () => {
+  const wanted = u.value.trim().replace(/^@/, '');
+  const r = await fetch(API + '/api/live/top-channels').then(r => r.json());
+  let pick = null;
+  if (wanted) {
+    pick = (r.channels || []).find(c => c.uniqueId === wanted) || null;
+    if (!pick) { info.textContent = '@' + wanted + ' not in current ticker. Try empty for random.'; return; }
+  } else {
+    pick = (r.channels || []).find(c => c.streamUrls && c.streamUrls.hls) || null;
+    if (!pick) { info.textContent = 'No streams available right now.'; return; }
+  }
+  if (!pick.streamUrls || !pick.streamUrls.hls) { info.textContent = 'No stream URL for @' + pick.uniqueId; return; }
+  info.textContent = '@' + pick.uniqueId + ' - LIVE';
+  const hls = pick.streamUrls.hls;
+  if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src = hls; v.play(); }
+  else if (window.Hls) { const h = new Hls(); h.loadSource(hls); h.attachMedia(v); }
+};
+go.click();
+</script>
