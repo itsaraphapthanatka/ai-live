@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { streamApi, campaignApi, aiApi, leadsApi, tiktokApi, heygenApi, platformApi } from "@/lib/api";
 import dynamic from "next/dynamic";
 const HeyGenAvatar = dynamic(() => import("@/components/HeyGenAvatar"), { ssr: false });
+const TikTokVideoPlayer = dynamic(() => import("@/components/TikTokVideoPlayer"), { ssr: false });
 import type { HeyGenAvatarHandle } from "@/components/HeyGenAvatar";
 import { useCallback } from "react";
 import { useUIStore } from "@/lib/store";
@@ -33,6 +34,9 @@ export default function LivePage() {
   const [tiktokMode, setTiktokMode] = useState<"monitor" | "rtmp">("monitor");
   const [tiktokUsername, setTiktokUsername] = useState("");
   const [tiktokStatus, setTiktokStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
+  const [tiktokStreamUrl, setTiktokStreamUrl] = useState<string | null>(null);
+  const [tiktokStreamQuality, setTiktokStreamQuality] = useState<string>("origin");
+  const [tiktokStreamIsDemo, setTiktokStreamIsDemo] = useState(false);
   const [gifts, setGifts] = useState<{ user: string; gift: string; count: number }[]>([]);
 
   // RTMP fields (non-TikTok or TikTok rtmp mode)
@@ -214,6 +218,11 @@ export default function LivePage() {
         if (event === "connected") {
           setTiktokStatus("connected");
           addToast(`เชื่อมต่อ TikTok @${tiktokUsername} สำเร็จ! 🎵`, "success");
+          if (data.stream_url) {
+            setTiktokStreamUrl(data.stream_url);
+            setTiktokStreamQuality(data.stream_quality || "origin");
+            setTiktokStreamIsDemo(!!data.demo);
+          }
         }
         if (event === "chat") {
           setComments((prev) => [
@@ -378,6 +387,7 @@ export default function LivePage() {
     setAutoReplyPending(0);
     setTotalAutoReplied(0);
     setSpeakReplies(false);
+    setTiktokStreamUrl(null);
     stopSpeaking();
     addToast("⏹️ หยุด Live แล้ว", "info");
   }
@@ -698,6 +708,33 @@ export default function LivePage() {
                   </div>
                 )
               )}
+            </div>
+          )}
+
+          {/* ── TikTok Live Video Player ─────────────────────────── */}
+          {isLive && selectedPlatform === "tiktok" && tiktokStreamUrl && tiktokStatus === "connected" && (
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ fontWeight: 700, fontSize: 15 }}>🎥 TikTok Live Preview</h3>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                    สตรีมสด @{tiktokUsername}
+                    {tiktokStreamIsDemo && <span style={{ color: "#f59e0b", marginLeft: 6 }}>· Demo mode</span>}
+                  </p>
+                </div>
+                {tiktokStreamQuality && tiktokStreamQuality !== "origin" && (
+                  <span style={{ padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 700,
+                    background: "rgba(0,242,234,0.1)", border: "1px solid rgba(0,242,234,0.25)", color: "#00c9c1" }}>
+                    {tiktokStreamQuality}
+                  </span>
+                )}
+              </div>
+              <TikTokVideoPlayer
+                streamUrl={tiktokStreamUrl}
+                username={tiktokUsername}
+                quality={tiktokStreamQuality}
+                isDemo={tiktokStreamIsDemo}
+              />
             </div>
           )}
 
