@@ -8,10 +8,10 @@ const navItems = [
   { href: "/dashboard", icon: "📊", label: "ภาพรวม", id: "nav-dashboard" },
   { href: "/dashboard/campaigns", icon: "📋", label: "แคมเปญ", id: "nav-campaigns" },
   { href: "/dashboard/live", icon: "🔴", label: "ห้อง Live", id: "nav-live" },
-  { href: "/dashboard/analytics", icon: "📈", label: "Analytics", id: "nav-analytics" },
-  { href: "/dashboard/leads", icon: "👥", label: "Leads", id: "nav-leads" },
+  { href: "/dashboard/analytics", icon: "📈", label: "สถิติ", id: "nav-analytics" },
+  { href: "/dashboard/leads", icon: "👥", label: "ลูกค้าเป้าหมาย", id: "nav-leads" },
   { href: "/dashboard/settings", icon: "⚙️", label: "ตั้งค่า", id: "nav-settings" },
-  { href: "/dashboard/billing", icon: "💳", label: "Billing", id: "nav-billing" },
+  { href: "/dashboard/billing", icon: "💳", label: "แพ็กเกจ", id: "nav-billing" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user?.full_name || user?.email}
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user?.role}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user?.role === "admin" ? "ผู้ดูแล" : "สมาชิก"}</div>
             </div>
             <button onClick={logout} title="Logout" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 16, padding: 4 }}>
               🚪

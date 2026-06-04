@@ -1,8 +1,9 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from typing import List
-from datetime import datetime, timezone
+from typing import List, Optional
+from datetime import datetime
 from pathlib import Path
 from app.database import get_db
 from app.models.user import User
@@ -65,6 +66,7 @@ async def delete_stream_account(
 async def start_stream(
     campaign_id: int,
     platform: str = "facebook",
+    tiktok_unique_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -98,7 +100,7 @@ async def start_stream(
         rtmp_url=rtmp_url,
         stream_key=stream_key,
         status="connecting",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.utcnow(),
     )
     db.add(session)
 
@@ -131,6 +133,18 @@ async def start_stream(
     await db.commit()
     await db.refresh(session)
 
+    # For TikTok: also start comment/viewer monitoring via WebSocket
+    if platform == "tiktok" and tiktok_unique_id:
+        from app.routers.tiktok import active_connections
+        from app.services.tiktok_service import TikTokConnection
+        conn = TikTokConnection(
+            session_id=session.id,
+            unique_id=tiktok_unique_id,
+            campaign_id=campaign_id,
+        )
+        active_connections[session.id] = conn
+        asyncio.create_task(conn.connect())
+
     return session
 
 
@@ -146,8 +160,15 @@ async def stop_stream(
         raise HTTPException(status_code=404, detail="Session not found")
 
     await stream_service.stop_stream(session_id)
+
+    # Also disconnect TikTok monitoring if active
+    from app.routers.tiktok import active_connections
+    conn = active_connections.pop(session_id, None)
+    if conn:
+        await conn.disconnect()
+
     session.status = "ended"
-    session.ended_at = datetime.now(timezone.utc)
+    session.ended_at = datetime.utcnow()
     await db.commit()
     return {"status": "stopped", "session_id": session_id}
 

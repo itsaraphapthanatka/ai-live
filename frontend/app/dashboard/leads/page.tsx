@@ -27,10 +27,10 @@ export default function LeadsPage() {
     try {
       await leadsApi.delete(id);
       setLeads((l) => l.filter((x) => x.id !== id));
-      addToast("ลบ Lead สำเร็จ", "success");
+      addToast("ลบข้อมูลสำเร็จ", "success");
     } catch {
       setLeads((l) => l.filter((x) => x.id !== id));
-      addToast("ลบ Lead สำเร็จ (demo)", "success");
+      addToast("ลบข้อมูลสำเร็จ (demo)", "success");
     }
   }
 
@@ -45,8 +45,8 @@ export default function LeadsPage() {
       <div className="page-header">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <h1 className="page-title">👥 Leads</h1>
-            <p className="page-subtitle">{leads.length} leads จากทุกแคมเปญ</p>
+            <h1 className="page-title">👥 ลูกค้าเป้าหมาย</h1>
+            <p className="page-subtitle">{leads.length} รายการจากทุกแคมเปญ</p>
           </div>
           <button onClick={() => {
             const csv = "Name,Contact,Source,Notes,Date\n" + leads.map((l) => `${l.name},${l.contact},${l.source},${l.notes},${l.created_at}`).join("\n");
@@ -69,7 +69,7 @@ export default function LeadsPage() {
                 <tr>
                   <th>ชื่อ</th>
                   <th>ติดต่อ</th>
-                  <th>Source</th>
+                  <th>ที่มา</th>
                   <th>หมายเหตุ</th>
                   <th>วันที่</th>
                   <th></th>

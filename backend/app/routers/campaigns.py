@@ -91,8 +91,11 @@ async def generate_avatar(
     db: AsyncSession = Depends(get_db),
 ):
     """Submit HeyGen video generation. Returns immediately with video_id."""
-    if not settings.HEYGEN_API_KEY:
-        raise HTTPException(status_code=400, detail="HEYGEN_API_KEY not configured")
+    from app.routers.platform_config import get_company_config
+    cfg = await get_company_config(db, current_user.company_id, "heygen")
+    api_key = cfg.get("api_key") or settings.HEYGEN_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=400, detail="กรุณาใส่ HeyGen API Key ในหน้าตั้งค่าก่อน")
 
     result = await db.execute(
         select(Campaign).where(
@@ -111,6 +114,7 @@ async def generate_avatar(
             script=campaign.script,
             avatar_id=data.avatar_id,
             voice_id=data.voice_id,
+            api_key=api_key,
         )
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=502, detail=f"HeyGen error: {e.response.text}")
@@ -127,6 +131,10 @@ async def avatar_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Check HeyGen generation status. Downloads and saves video when completed."""
+    from app.routers.platform_config import get_company_config
+    cfg = await get_company_config(db, current_user.company_id, "heygen")
+    api_key = cfg.get("api_key") or settings.HEYGEN_API_KEY
+
     result = await db.execute(
         select(Campaign).where(
             Campaign.id == campaign_id,
@@ -140,7 +148,7 @@ async def avatar_status(
         raise HTTPException(status_code=400, detail="No avatar generation in progress")
 
     try:
-        info = await heygen_service.get_video_status(campaign.heygen_video_id)
+        info = await heygen_service.get_video_status(campaign.heygen_video_id, api_key=api_key)
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=502, detail=f"HeyGen error: {e.response.text}")
 
@@ -163,25 +171,73 @@ async def avatar_status(
 
 
 @router.get("/heygen/avatars")
-async def list_heygen_avatars(current_user: User = Depends(get_current_user)):
-    """List available HeyGen avatars."""
-    if not settings.HEYGEN_API_KEY:
-        raise HTTPException(status_code=400, detail="HEYGEN_API_KEY not configured")
+async def list_heygen_avatars(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List available HeyGen avatars — อ่าน API key จาก DB ก่อน"""
+    from app.routers.platform_config import get_company_config
+    cfg = await get_company_config(db, current_user.company_id, "heygen")
+    api_key = cfg.get("api_key") or settings.HEYGEN_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=400, detail="กรุณาใส่ HeyGen API Key ในหน้าตั้งค่าก่อน")
     try:
-        avatars = await heygen_service.list_avatars()
-        return {"avatars": avatars}
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://api.heygen.com/v2/avatars",
+                headers={"X-Api-Key": api_key},
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+            avatars = data.get("data", {}).get("avatars", [])
+            return {
+                "avatars": [
+                    {
+                        "id": a["avatar_id"],
+                        "name": a.get("avatar_name", a["avatar_id"]),
+                        "preview": a.get("preview_image_url"),
+                        "gender": a.get("gender"),
+                    }
+                    for a in avatars
+                ]
+            }
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=502, detail=f"HeyGen error: {e.response.text}")
 
 
 @router.get("/heygen/voices")
-async def list_heygen_voices(current_user: User = Depends(get_current_user)):
-    """List available HeyGen voices."""
-    if not settings.HEYGEN_API_KEY:
-        raise HTTPException(status_code=400, detail="HEYGEN_API_KEY not configured")
+async def list_heygen_voices(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List available HeyGen voices — อ่าน API key จาก DB ก่อน"""
+    from app.routers.platform_config import get_company_config
+    cfg = await get_company_config(db, current_user.company_id, "heygen")
+    api_key = cfg.get("api_key") or settings.HEYGEN_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=400, detail="กรุณาใส่ HeyGen API Key ในหน้าตั้งค่าก่อน")
     try:
-        voices = await heygen_service.list_voices()
-        return {"voices": voices}
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://api.heygen.com/v2/voices",
+                headers={"X-Api-Key": api_key},
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+            voices = data.get("data", {}).get("voices", [])
+            return {
+                "voices": [
+                    {
+                        "id": v["voice_id"],
+                        "name": v.get("name", v["voice_id"]),
+                        "language": v.get("language"),
+                        "gender": v.get("gender"),
+                    }
+                    for v in voices
+                ]
+            }
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=502, detail=f"HeyGen error: {e.response.text}")
 

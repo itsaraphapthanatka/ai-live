@@ -12,7 +12,14 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     MEDIA_DIR: str = "/app/media"
     HEYGEN_API_KEY: str = ""
+    HEYGEN_AVATAR_ID: str = ""
     TIKTOOL_API_KEY: str = ""
+    # Facebook
+    FACEBOOK_APP_ID: str = ""
+    FACEBOOK_APP_SECRET: str = ""
+    # YouTube / Google
+    YOUTUBE_CLIENT_ID: str = ""
+    YOUTUBE_CLIENT_SECRET: str = ""
 
     class Config:
         env_file = ".env"

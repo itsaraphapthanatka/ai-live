@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import uuid
 from datetime import datetime
 from typing import Optional
 from fastapi import WebSocket
@@ -35,6 +36,11 @@ class TikTokConnection:
         self._reconnect_delay = 3
         self._reconnect_attempts = 0
         self._max_reconnect_attempts = 1
+
+        # Auto-reply AI
+        self.auto_reply: bool = False
+        self.auto_reply_voice: str = "nova"
+        self._pending_replies: int = 0
 
     def add_frontend_ws(self, ws: WebSocket):
         self._frontend_ws.append(ws)
@@ -115,13 +121,18 @@ class TikTokConnection:
 
         if event == "chat":
             comment_text = data.get("comment", "")
+            comment_id = str(uuid.uuid4())
             await self.broadcast("chat", {
+                "id": comment_id,
                 "user": nickname,
                 "text": comment_text,
                 "timestamp": datetime.utcnow().isoformat(),
+                "auto_replying": self.auto_reply and bool(comment_text),
             })
             self.comment_count += 1
             await self._save_comment(nickname, comment_text)
+            if self.auto_reply and comment_text:
+                asyncio.create_task(self._auto_reply(comment_id, nickname, comment_text))
             return
 
         if event == "gift":
@@ -157,13 +168,46 @@ class TikTokConnection:
 
         logger.debug(f"Unhandled event: {event} | {raw[:200]}")
 
-    async def _save_comment(self, user: str, text: str):
+    async def _auto_reply(self, comment_id: str, user: str, comment: str):
+        """Generate an AI reply to a comment and broadcast it back."""
+        self._pending_replies += 1
+        try:
+            from app.services.ai_service import generate_comment_reply
+            reply = await generate_comment_reply(
+                comment=comment,
+                product_name="",
+                language="th",
+            )
+            await self.broadcast("ai_reply", {
+                "comment_id": comment_id,
+                "user": user,
+                "comment": comment,
+                "reply": reply,
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+            # Save reply to DB
+            await self._save_comment(user, comment, ai_reply=reply)
+        except Exception as e:
+            logger.error(f"Auto reply error for comment '{comment[:40]}': {e}")
+            await self.broadcast("ai_reply", {
+                "comment_id": comment_id,
+                "user": user,
+                "comment": comment,
+                "reply": "ขอบคุณที่ถามนะคะ! สนใจสั่งซื้อได้เลยค่ะ 💌",
+                "timestamp": datetime.utcnow().isoformat(),
+                "fallback": True,
+            })
+        finally:
+            self._pending_replies -= 1
+
+    async def _save_comment(self, user: str, text: str, ai_reply: str = None):
         try:
             async with AsyncSessionLocal() as db:
                 c = Comment(
                     session_id=self.session_id,
                     user_name=user,
                     message=text,
+                    ai_reply=ai_reply,
                 )
                 db.add(c)
                 await db.commit()
@@ -323,9 +367,13 @@ class TikTokConnection:
                         await self._handle_message(raw)
             except websockets.exceptions.ConnectionClosed as e:
                 logger.warning(f"TikTok WS closed: code={e.code}")
-                if e.code == 4001:
+                if e.code in (4001, 4004):
                     self._should_reconnect = False
-                    await self.broadcast("error", {"message": "Not live or invalid user"})
+                    await self.broadcast("error", {"message": f"ไม่พบ @{self.unique_id} หรือ username ไม่ถูกต้อง"})
+                    break
+                if e.code == 4429:
+                    self._should_reconnect = False
+                    await self.broadcast("error", {"message": f"@{self.unique_id} ยังไม่ได้ Live อยู่ — เปิด TikTok app แล้ว Live ก่อน แล้วค่อยกด เริ่ม Live ใหม่อีกครั้ง"})
                     break
                 self._reconnect_attempts += 1
                 if self._reconnect_attempts <= self._max_reconnect_attempts:

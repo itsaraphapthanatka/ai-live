@@ -5,6 +5,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     ffmpeg \
+    libopus-dev \
+    libvpx-dev \
+    pkg-config \
+    libsrtp2-dev \
+    libavdevice-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

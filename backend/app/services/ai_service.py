@@ -4,11 +4,25 @@ from app.config import settings
 _client = None
 
 
-def get_openai_client() -> AsyncOpenAI:
+def get_openai_client(api_key: str = "") -> AsyncOpenAI:
     global _client
-    if _client is None:
-        _client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    key = api_key or settings.OPENAI_API_KEY
+    if _client is None or api_key:
+        return AsyncOpenAI(api_key=key)
     return _client
+
+
+async def get_client_for_company(company_id: int) -> AsyncOpenAI:
+    """อ่าน OpenAI key จาก DB ถ้ามี ไม่งั้นใช้จาก settings"""
+    try:
+        from app.database import AsyncSessionLocal
+        from app.routers.platform_config import get_company_config
+        async with AsyncSessionLocal() as db:
+            cfg = await get_company_config(db, company_id, "openai")
+            key = cfg.get("api_key") or settings.OPENAI_API_KEY
+            return AsyncOpenAI(api_key=key)
+    except Exception:
+        return get_openai_client()
 
 
 TONE_MAP = {

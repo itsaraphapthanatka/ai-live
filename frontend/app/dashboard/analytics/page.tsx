@@ -50,17 +50,17 @@ export default function AnalyticsPage() {
   return (
     <div style={{ padding: "0 0 40px" }}>
       <div className="page-header">
-        <h1 className="page-title">📈 Analytics</h1>
-        <p className="page-subtitle">ภาพรวมสถิติ Leads, คอมเมนต์ และรายได้ของ Agency</p>
+        <h1 className="page-title">📈 สถิติ</h1>
+        <p className="page-subtitle">ภาพรวมสถิติลูกค้าเป้าหมาย, ความคิดเห็น และรายได้ของ Agency</p>
       </div>
 
       <div style={{ padding: "0 32px" }}>
         {/* Summary stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
           {[
-            { label: "Leads ทั้งหมด", value: "312", change: "+18%", icon: "🎯", positive: true },
-            { label: "Sessions", value: "45", change: "+24%", icon: "📡", positive: true },
-            { label: "Conversion Rate", value: "28%", change: "+3%", icon: "📊", positive: true },
+            { label: "ลูกค้าเป้าหมายทั้งหมด", value: "312", change: "+18%", icon: "🎯", positive: true },
+            { label: "ครั้งที่ไลฟ์", value: "45", change: "+24%", icon: "📡", positive: true },
+            { label: "อัตราการซื้อ", value: "28%", change: "+3%", icon: "📊", positive: true },
             { label: "ชม. Live", value: "186h", change: "+12%", icon: "⏱️", positive: true },
           ].map((s) => (
             <div key={s.label} className="stat-card">
@@ -80,14 +80,14 @@ export default function AnalyticsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 20, marginBottom: 20 }}>
           {/* Leads & Comments over week */}
           <div className="card">
-            <h3 style={{ fontWeight: 700, marginBottom: 20 }}>📊 Leads & คอมเมนต์ รายสัปดาห์</h3>
+            <h3 style={{ fontWeight: 700, marginBottom: 20 }}>📊 ลูกค้าเป้าหมาย & ความคิดเห็น รายสัปดาห์</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={DEMO_LEADS_DATA} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="day" tick={{ fill: "#71717a", fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "#71717a", fontSize: 12 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="leads" name="Leads" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" name="ลูกค้าเป้าหมาย" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="comments" name="คอมเมนต์" fill="rgba(99,102,241,0.3)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
                 <tr>
                   <th>#</th>
                   <th>แคมเปญ</th>
-                  <th>Leads</th>
+                  <th>ลูกค้าเป้าหมาย</th>
                   <th>Conversion</th>
                   <th>ความคืบหน้า</th>
                 </tr>

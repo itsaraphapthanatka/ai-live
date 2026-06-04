@@ -387,8 +387,8 @@ export default function CampaignDetailPage() {
                 <select className="input" value={selectedHeygenVoice} onChange={(e) => setSelectedHeygenVoice(e.target.value)}>
                   <option value="">— เลือกเสียง —</option>
                   {heygenVoices.map((v) => (
-                    <option key={v.voice_id} value={v.voice_id}>
-                      {v.display_name || v.voice_id} ({v.gender})
+                    <option key={v.id || v.voice_id} value={v.id || v.voice_id}>
+                      {v.name || v.display_name || v.id} {v.gender ? `(${v.gender})` : ""}{v.language ? ` - ${v.language}` : ""}
                     </option>
                   ))}
                 </select>

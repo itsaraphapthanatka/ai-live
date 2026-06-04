@@ -72,6 +72,43 @@ async def tiktok_disconnect(
     return {"status": "disconnected"}
 
 
+@router.post("/auto-reply/{session_id}")
+async def set_auto_reply(
+    session_id: int,
+    enabled: bool,
+    voice: str = "nova",
+    current_user: User = Depends(get_current_user),
+):
+    """Enable or disable AI auto-reply for a TikTok session."""
+    conn = active_connections.get(session_id)
+    if not conn:
+        raise HTTPException(status_code=404, detail="Session not found or not active")
+    conn.auto_reply = enabled
+    conn.auto_reply_voice = voice
+    return {
+        "session_id": session_id,
+        "auto_reply": enabled,
+        "voice": voice,
+        "pending": conn._pending_replies,
+    }
+
+
+@router.get("/auto-reply/{session_id}")
+async def get_auto_reply_status(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    conn = active_connections.get(session_id)
+    if not conn:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {
+        "session_id": session_id,
+        "auto_reply": conn.auto_reply,
+        "pending": conn._pending_replies,
+        "comment_count": conn.comment_count,
+    }
+
+
 @router.get("/active")
 async def list_active(
     current_user: User = Depends(get_current_user),
